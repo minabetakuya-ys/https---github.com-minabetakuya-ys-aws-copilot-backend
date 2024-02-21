@@ -13,12 +13,19 @@
 # 事前準備
 # VPC(subnetなども含む)とRDSをGUIで作成しておく
 # 新規作成からの手順
-# copilot app init
-# copilot env init
+# copilot app init name->test
+# copilot env init name->test
 # copilot env deploy これでクラスターが生成されます
-# copilot svc init
+# copilot svc init name->myservice
 # copilot svc deploy
 
+# CI/CD
+# copilot pipeline init Workloads select
+
+# RDS
+# copilot secret init
+# MYSQL_HOST
+# secret valueにはAWSsystems managerのパラメータストアの値をコピーして貼り付け
 # 最初からやり直したい場合
 # copilot svc delete
 # copilot env delete
