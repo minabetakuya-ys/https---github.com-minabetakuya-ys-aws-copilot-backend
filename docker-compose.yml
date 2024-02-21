@@ -1,0 +1,74 @@
+#######################################################################
+# docker-composeとは複数のDockerコンテナを組み合わせてアプリを実行するためのツール
+# 実行するにはdocker compose up -d をするだけでDockerファイルもビルドされます
+#######################################################################
+# dockerコマンドを忘れてしまうため記載します。
+# docker compose up -d --build ビルドをした後でRUNが走ります
+# docker-compose run web rails db:create
+# docker-compose run web rails db:migrate
+# その他
+# docker-compose exec web bash WEBコンテナに入る
+#######################################################################
+# AWS copilotとはcloud formationを使い簡単にECS環境にデプロイできるCIツール
+# 事前準備
+# VPC(subnetなども含む)とRDSをGUIで作成しておく
+# 新規作成からの手順
+# copilot app init
+# copilot env init
+# copilot env deploy これでクラスターが生成されます
+# copilot svc init
+# copilot svc deploy
+
+# 最初からやり直したい場合
+# copilot svc delete
+# copilot env delete
+# copilot app delete
+# aww-container/copilot　ディレクトリ削除
+
+# copilotの状態確認
+# copilot app show
+
+#######################################################################
+# マイナーバージョンまで指定するようにとDockerリファレンスに記載あり
+version: '3.9'
+services:
+# webサーバ名称はweb apiやappはダメです
+  web:
+  # 直下のDockerファイルが認識されビルドされる
+    build: .
+    command: /bin/sh -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 8000 -b '0.0.0.0'"
+    container_name: web
+    # データの永続化や共有のためにホストとコンテナ間でボリュームをマッピング
+    volumes:
+      - .:/app
+    ports:
+      - ${WEB_HOST_PORT}:8000
+    depends_on:
+      - db
+    tty: true
+    stdin_open: true
+  db:
+  # Dockerファイルでも設定できるがDBは設定項目が多いためcomposeファイルでDockerイメージを指定
+  # dbはpostgreではなくMysqlを使用する
+    image: mysql:8.3.0
+    platform: linux/arm64 #M1以降のmacの場合は必要 デフォルトでamd64になってしまうためlinux/x86_64
+    command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci
+    volumes:
+      - db-volume:/var/lib/mysql
+      - ./.docker/mysql/log:/var/log/mysql
+      - ./.docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./.docker/mysql/initdb.d:/docker-entrypoint-initdb.d
+
+    # 環境変数
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_ROOT_USER=${DB_ROOT_USER}
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - TZ=UTC
+    ports:
+      - ${DB_PORT}:3306
+
+volumes:
+  db-volume:
